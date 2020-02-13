@@ -1,0 +1,56 @@
+#%RAML 1.0
+title: adp-code-challenge
+baseUri: http://localhost:8082/api
+
+types: 
+  employeeCreationRequest: !include datatypes/employeeCreationRequest.raml
+
+/employee:
+  put:
+    body:
+      application/json:
+        type: employeeCreationRequest
+        example: !include examples/employeeCreationRequest.json
+    responses:
+        201:
+          description: employee profile created successfully
+          body:
+            text/plain: 
+              example:  |
+                Jan Doe employee profile is created in HRMS System
+
+/camelcase:
+  /{camelcasestring}:
+    get:
+      responses: 
+        200:
+          body: 
+            text/plain:
+              example:  |
+                Camel Case String
+
+/numberslist:
+  /{max}:
+    get:
+      responses: 
+        200:
+          body: 
+            application/json:
+              example:  |
+                [1,2,3,4,5,6,7,8,9,10]
+                
+/inputsmerging:
+    get:
+      responses: 
+        200:
+          body: 
+            text/plain:
+              example:  |
+                 fourth task solution exicuted
+     
+
+              
+            
+               
+
+  

@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+    <http:listener-config name="adp-code-challenge-httpListenerConfig">
+        <http:listener-connection host="${http.host}" port="${http.port}" />
+    </http:listener-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="13fd257a-85ac-464e-b037-c597fb6124e9" file="config/adp_${env}.yaml" />
+    <apikit:config name="adp-code-challenge-config" api="adp-code-challenge.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <global-property doc:name="Global Property" doc:id="449726a4-c4f8-4f48-9c21-4b71942a770d" name="env" value="dev" />
+	<flow name="adp-code-challenge-main">
+        <http:listener config-ref="adp-code-challenge-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="adp-code-challenge-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="adp-code-challenge-console">
+        <http:listener config-ref="adp-code-challenge-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="adp-code-challenge-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\employee:application\json:adp-code-challenge-config">
+    <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="d0411d32-d6dd-4316-bfa4-d60cc8d00923" doc:name="response_payload_transformation">
+            <ee:message>
+				<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+payload.employee.first_name ++ " " ++ payload.employee.last_name ++ " employee profile is created in HRMS System"]]></ee:set-payload>
+            </ee:message>
+			<ee:variables >
+			</ee:variables>
+        </ee:transform>
+		<ee:transform doc:name="calling_flow_2" doc:id="42b06d5f-eca0-420d-bc3e-b1873717745d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+lookup("flow2", payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+    <flow name="flow2" doc:id="a02ba96f-8fd9-45e2-8e34-68a0855b59a6" >
+		<logger level="INFO" doc:name="Flow1Payload" doc:id="f12421d2-63c9-4a6c-be9b-479cfec5aea4" message="payload from flow 1  : #[payload]"/>
+	</flow>
+    <flow name="get:\numberslist\(max):adp-code-challenge-config">
+	<set-variable value="#[[]]" doc:name="SetEmptyArray" doc:id="7b6c97d8-fafd-4d1b-854c-b5f169d53a33" variableName="naturalNumbers"/>
+		<set-variable doc:name="Set Variable" doc:id="88927fc3-f4f5-415c-a849-391498cc9fc9" variableName="size" value="#[attributes.uriParams.max as Number]"/>
+
+              <scripting:execute engine="groovy" doc:name="Execute" doc:id="0cf38af2-626e-4190-852b-d025492fed2d" >
+
+                     <scripting:code >for(i=0;i&lt;vars.size;i++)
+
+{
+
+  vars.naturalNumbers &lt;&lt; i+1
+
+  }</scripting:code>
+
+              </scripting:execute>
+
+              <set-payload value="#[output application/json --- vars.naturalNumbers]" doc:name="Set Payload" doc:id="dad2ef9a-e8f5-4972-96bf-90f9db04d078" />
+		<logger level="INFO" doc:name="Logger" doc:id="8fb4b001-51a8-442b-b4ca-d1c585fcbf98" message="#[payload]"/>	
+       
+    </flow>
+    <flow name="get:\inputsmerging:adp-code-challenge-config">
+    <ee:transform doc:name="defining_Variables_with_InputPayoads" doc:id="a4aadadc-41db-4e6e-8745-368e340dd8f8" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputOne" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"employee": [{
+		"id": "A007",
+		"first_name": "Jan",
+		"last_name": "Doe"
+	}, {
+		"id": "A008",
+		"first_name": "Ron",
+		"l ast_name": "David"
+	}, {
+		"id": "A009",
+		"first_name": "Jane",
+		"last_name": "Kane"
+	}, {
+		"id": "A010",
+		"first_name": "Marsh",
+		"last_name": "Megan"
+	}, {
+		"id": "A011",
+		"first_name": "Kelly",
+		"last_name": "Mitch"
+	}, {
+		"id": "A012",
+		"first_name": "Chris",
+		"last_name": "Vaste"
+	}]
+}]]></ee:set-variable>
+				<ee:set-variable variableName="inputTwo" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"scoreBoard": [{
+		"id": "A007",
+		"subjects": ["Maths", "English", "Arts", "Drawimgs"],
+		"score": [80, 75, 89, 100]
+	}, {
+		"id": "A008",
+		"subjects": ["Maths", "English", "Arts", "Drawimgs"],
+		"score": [70, 85, 69, 90]
+	}, {
+		"id": "A021",
+		"subjects": ["Maths", "English", "Arts", "Drawimgs"],
+		"score": [90, 87, 77, 95]
+	}]
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="4.1_solution_transformer" doc:id="f5ddd0ad-8a78-45d3-93db-3070e671824d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+fun subject(x,y) = { (x map '$': y[$$])  }
+---
+{
+	certificate : (flatten([vars.inputOne.employee,vars.inputTwo.scoreBoard])) map ((details,index) -> {
+		id : details.id,
+		firstName: details.first_name,
+		LastName: details.last_name,
+		MarksBySubjectWise: subject ((vars.inputTwo.scoreBoard[?($.id  == details.id)][0].subjects),(vars.inputTwo.scoreBoard[?($.id  == details.id)][0].score))
+			
+		} 
+	
+	) distinctBy $.id
+	
+ 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="4.1_output_payload" doc:id="4035e838-4273-4fb4-9a3b-037ba1c2c8e7" message="4.1 solution payload :::::::::::::::::::::::#[payload]"/>
+		<ee:transform doc:name="4.2_solution_transformer" doc:id="55ae22a7-cefb-4601-b2a4-34620a4ec580" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+fun subject(x,y) = { (x map '$': y[$$])  }
+var inputoneidarray = vars.inputOne.employee.*id
+---
+{
+	certificate : (flatten([vars.inputOne.employee,vars.inputTwo.scoreBoard])) filter (inputoneidarray contains ($.id))  map ((details,index) -> {
+		id : details.id,
+		firstName: details.first_name,
+		LastName: details.last_name,
+		MarksBySubjectWise: subject ((vars.inputTwo.scoreBoard[?($.id  == details.id)][0].subjects),(vars.inputTwo.scoreBoard[?($.id  == details.id)][0].score))
+			
+		} 
+	
+	) distinctBy $.id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="4.2_output_payload" doc:id="eb95458a-3b62-4cd9-8567-2f08c2ffaf74" message="4.2 solution payload ::::::::::::::: #[payload]"/>
+		<set-payload value="please verify logs for 4.1 and 4.2 tasks outputs" doc:name="Set Payload" doc:id="87b1f0fb-b23a-4b00-908b-1946c15ba2cd" />
+
+    </flow>
+    <flow name="get:\camelcase\(camelcasestring):adp-code-challenge-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="f5564923-ffc0-4d05-938b-427ff1739316" doc:name="callingJavaClass">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+
+	
+java!camelcase::camelcaseconversion::conversion(attributes.uriParams.camelcasestring)
+]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="afterCamelCaseConversion" doc:id="84484471-b62f-474f-a713-d51c54fec42c" message="after conversion:::::: #[payload]"/>
+    </flow>
+</mule>
